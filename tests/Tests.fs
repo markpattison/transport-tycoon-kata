@@ -50,6 +50,8 @@ let ``split first match works correctly when no matches present`` () =
 [<TestCase("AB", 5)>]
 [<TestCase("BB", 5)>]
 [<TestCase("ABB", 7)>]
+[<TestCase("AABABBAB", 29)>]
+[<TestCase("ABBBABAAABBB", 41)>]
 let ``Sample cargo lists give correct answers`` input expected =
     let result = Algorithm.calculateHours input
     Assert.AreEqual(expected, result)

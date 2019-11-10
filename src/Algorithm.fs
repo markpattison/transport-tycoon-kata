@@ -41,10 +41,7 @@ type Vehicle =
 type State =
     {
         Time: int
-        FactoryQueue: Cargo list
-        PortQueue: Cargo list
-        WarehouseA: Cargo list
-        WarehouseB: Cargo list
+        Queues: Map<Place, Cargo list>
         Vehicles: Vehicle list
     }
 
@@ -66,10 +63,7 @@ module Algorithm =
 
     let initialState cargo =
         { Time = 0
-          FactoryQueue = cargo
-          PortQueue = []
-          WarehouseA = []
-          WarehouseB = []
+          Queues = [ (Factory, cargo); (Port, []); (Warehouse A, []); (Warehouse B, []) ] |> Map.ofList
           Vehicles = initialVehicles }
 
     let parseDestinations (input: string) =
@@ -100,19 +94,19 @@ module Algorithm =
         split [] lst
 
     let loadCargoAtFactory state =
-        match splitFirstMatch (fun v -> v.Type = Truck && v.Location = At Factory && v.Cargo = None) state.Vehicles, state.FactoryQueue with
+        match splitFirstMatch (fun v -> v.Type = Truck && v.Location = At Factory && v.Cargo = None) state.Vehicles, state.Queues.[Factory] with
         | Some (emptyTruck, otherVehicles), cargoToLoad :: remainingCargo ->
             let loadedVehicle = { emptyTruck with Cargo = Some cargoToLoad }
             sprintf "Loading: %O onto %O" cargoToLoad emptyTruck |> log state
-            { state with FactoryQueue = remainingCargo; Vehicles = loadedVehicle :: otherVehicles }
+            { state with Queues = state.Queues.Add(Factory, remainingCargo); Vehicles = loadedVehicle :: otherVehicles }
         | _ -> state            
 
     let loadCargoAtPort state =
-        match splitFirstMatch (fun v -> v.Type = Ship && v.Location = At Port && v.Cargo = None) state.Vehicles, state.PortQueue with
+        match splitFirstMatch (fun v -> v.Type = Ship && v.Location = At Port && v.Cargo = None) state.Vehicles, state.Queues.[Port] with
         | Some (emptyShip, otherVehicles), cargoToLoad :: remainingCargo ->
             let loadedVehicle = { emptyShip with Cargo = Some cargoToLoad }
             sprintf "Loading: %O onto %O" cargoToLoad emptyShip |> log state
-            { state with PortQueue = remainingCargo; Vehicles = loadedVehicle :: otherVehicles }
+            { state with Queues = state.Queues.Add(Port, remainingCargo); Vehicles = loadedVehicle :: otherVehicles }
         | _ -> state  
 
     let despatchLoadedTruck state =
@@ -132,7 +126,7 @@ module Algorithm =
         | Some (loadedTruck, otherVehicles) ->
             let unloadedTruck, cargo = unloadVehicle loadedTruck
             sprintf "Unloading: %O" loadedTruck |> log state
-            { state with PortQueue = cargo :: state.PortQueue; Vehicles = unloadedTruck :: otherVehicles }
+            { state with Queues = state.Queues.Add(Port, cargo :: state.Queues.[Port]); Vehicles = unloadedTruck :: otherVehicles }
         | _ -> state        
 
     let unloadVehicleAtWarehouse state =
@@ -140,8 +134,8 @@ module Algorithm =
         | Some (loadedVehicle, otherVehicles) ->
             let unloadedVehicle, cargo = unloadVehicle loadedVehicle
             match loadedVehicle.Location with
-            | At (Warehouse A) -> sprintf "Unloading: %O" loadedVehicle |> log state; { state with WarehouseA = cargo :: state.WarehouseA; Vehicles = unloadedVehicle :: otherVehicles }
-            | At (Warehouse B) -> sprintf "Unloading: %O" loadedVehicle |> log state; { state with WarehouseB = cargo :: state.WarehouseB; Vehicles = unloadedVehicle :: otherVehicles }
+            | At (Warehouse A) -> sprintf "Unloading: %O" loadedVehicle |> log state; { state with Queues = state.Queues.Add(Warehouse A, cargo :: state.Queues.[Warehouse A]); Vehicles = unloadedVehicle :: otherVehicles }
+            | At (Warehouse B) -> sprintf "Unloading: %O" loadedVehicle |> log state; { state with Queues = state.Queues.Add(Warehouse B, cargo :: state.Queues.[Warehouse B]); Vehicles = unloadedVehicle :: otherVehicles }
             | _ -> failwith "Impossible to unload"
         | _ -> state 
     
@@ -212,7 +206,7 @@ module Algorithm =
         updatedOpt
 
     let isCompleted state =
-        state.FactoryQueue.IsEmpty && state.PortQueue.IsEmpty && List.forall (fun v -> v.Cargo.IsNone) state.Vehicles
+        state.Queues.[Factory].IsEmpty && state.Queues.[Port].IsEmpty && List.forall (fun v -> v.Cargo.IsNone) state.Vehicles
 
     let rec run state =
         if isCompleted state then
