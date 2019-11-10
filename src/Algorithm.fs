@@ -47,7 +47,7 @@ type State =
 
 module Algorithm =
 
-    let logging = false
+    let logging = true
 
     let log state msg = if logging then printfn "Time %i: %s" state.Time msg
 
@@ -93,81 +93,50 @@ module Algorithm =
             | [] -> None
         split [] lst
 
-    let loadCargoAtFactory state =
-        match splitFirstMatch (fun v -> v.Type = Truck && v.Location = At Factory && v.Cargo = None) state.Vehicles, state.Queues.[Factory] with
-        | Some (emptyTruck, otherVehicles), cargoToLoad :: remainingCargo ->
-            let loadedVehicle = { emptyTruck with Cargo = Some cargoToLoad }
-            sprintf "Loading: %O onto %O" cargoToLoad emptyTruck |> log state
-            { state with Queues = state.Queues.Add(Factory, remainingCargo); Vehicles = loadedVehicle :: otherVehicles }
+    let loadCargo vehicleType location state =
+        match splitFirstMatch (fun v -> v.Type = vehicleType && v.Location = At location && v.Cargo = None) state.Vehicles, state.Queues.[location] with
+        | Some (emptyVehicle, otherVehicles), cargoToLoad :: remainingCargo ->
+            let loadedVehicle = { emptyVehicle with Cargo = Some cargoToLoad }
+            sprintf "Loading: %O onto %O" cargoToLoad emptyVehicle |> log state
+            { state with Queues = state.Queues.Add(location, remainingCargo); Vehicles = loadedVehicle :: otherVehicles }
         | _ -> state            
 
-    let loadCargoAtPort state =
-        match splitFirstMatch (fun v -> v.Type = Ship && v.Location = At Port && v.Cargo = None) state.Vehicles, state.Queues.[Port] with
-        | Some (emptyShip, otherVehicles), cargoToLoad :: remainingCargo ->
-            let loadedVehicle = { emptyShip with Cargo = Some cargoToLoad }
-            sprintf "Loading: %O onto %O" cargoToLoad emptyShip |> log state
-            { state with Queues = state.Queues.Add(Port, remainingCargo); Vehicles = loadedVehicle :: otherVehicles }
-        | _ -> state  
-
-    let despatchLoadedTruck state =
-        match splitFirstMatch (fun v -> v.Type = Truck && v.Location = At Factory && v.Cargo.IsSome) state.Vehicles with
-        | Some (loadedTruck, otherVehicles) ->
-            let journey =
-                match loadedTruck.Cargo.Value with
-                | Destination A -> (Factory, state.Time, Port, state.Time + distanceFactoryToPort)
-                | Destination B -> (Factory, state.Time, Warehouse B, state.Time + distanceFactoryToB)
-            let movingTruck = { loadedTruck with Location = Journey journey }
-            sprintf "Despatching: %O, %O" loadedTruck movingTruck.Location |> log state
-            { state with Vehicles = movingTruck :: otherVehicles }
+    let despatch vehicleType location state =
+        match splitFirstMatch (fun v -> v.Type = vehicleType && v.Location = At location && v.Cargo.IsSome) state.Vehicles with
+        | Some (loadedVehicle, otherVehicles) ->
+            let dest, distance =
+                match location, loadedVehicle.Cargo.Value with
+                | Factory, Destination A -> Port, distanceFactoryToPort
+                | Factory, Destination B -> Warehouse B, distanceFactoryToB
+                | Port, Destination A -> Warehouse A, distancePortToA
+                | _ -> failwith "Unknown despatch"
+            let journey = (location, state.Time, dest, state.Time + distance)
+            let movingVehicle = { loadedVehicle with Location = Journey journey }
+            sprintf "Despatching: %O, %O" loadedVehicle movingVehicle.Location |> log state
+            { state with Vehicles = movingVehicle :: otherVehicles }
         | _ -> state
-
-    let unloadTruckAtPort state =
-        match splitFirstMatch (fun v -> v.Type = Truck && v.Location = At Port && v.Cargo.IsSome) state.Vehicles with
-        | Some (loadedTruck, otherVehicles) ->
-            let unloadedTruck, cargo = unloadVehicle loadedTruck
-            sprintf "Unloading: %O" loadedTruck |> log state
-            { state with Queues = state.Queues.Add(Port, cargo :: state.Queues.[Port]); Vehicles = unloadedTruck :: otherVehicles }
-        | _ -> state        
-
-    let unloadVehicleAtWarehouse state =
-        match splitFirstMatch (fun v -> v.Location.IsWarehouse && v.Cargo.IsSome) state.Vehicles with
+    
+    let unload vehicleType location state =
+        match splitFirstMatch (fun v -> v.Type = vehicleType && v.Location = At location && v.Cargo.IsSome) state.Vehicles with
         | Some (loadedVehicle, otherVehicles) ->
             let unloadedVehicle, cargo = unloadVehicle loadedVehicle
-            match loadedVehicle.Location with
-            | At (Warehouse A) -> sprintf "Unloading: %O" loadedVehicle |> log state; { state with Queues = state.Queues.Add(Warehouse A, cargo :: state.Queues.[Warehouse A]); Vehicles = unloadedVehicle :: otherVehicles }
-            | At (Warehouse B) -> sprintf "Unloading: %O" loadedVehicle |> log state; { state with Queues = state.Queues.Add(Warehouse B, cargo :: state.Queues.[Warehouse B]); Vehicles = unloadedVehicle :: otherVehicles }
-            | _ -> failwith "Impossible to unload"
-        | _ -> state 
-    
-    let returnEmptyTruck state =
-        match splitFirstMatch (fun v -> v.Type = Truck && not v.IsMoving && v.Location <> At Factory && v.Cargo.IsNone) state.Vehicles with
-        | Some (emptyTruck, otherVehicles) ->
-            let journey =
-                match emptyTruck.Location with
-                | At Port -> (Port, state.Time, Factory, state.Time + distanceFactoryToPort)
-                | At (Warehouse B) -> (Warehouse B, state.Time, Factory, state.Time + distanceFactoryToB)
-                | _ -> failwith "Impossible truck"
-            let movingTruck = { emptyTruck with Location = Journey journey }
-            sprintf "Returning: %O, %O" emptyTruck movingTruck.Location |> log state
-            { state with Vehicles = movingTruck :: otherVehicles }
-        | _ -> state
-    
-    let despatchShip state =
-        match splitFirstMatch (fun v -> v.Type = Ship && v.Location = At Port && v.Cargo.IsSome) state.Vehicles with
-        | Some (loadedShip, otherVehicles) ->
-            let journey = (Port, state.Time, Warehouse A, state.Time + distancePortToA)
-            let movingShip = { loadedShip with Location = Journey journey }
-            sprintf "Despatching: %O, %O" loadedShip movingShip.Location |> log state
-            { state with Vehicles = movingShip :: otherVehicles }
-        | _ -> state
+            sprintf "Unloading: %O" loadedVehicle |> log state
+            { state with Queues = state.Queues.Add(location, cargo :: state.Queues.[location]); Vehicles = unloadedVehicle :: otherVehicles }
+        | _ -> state        
 
-    let returnEmptyShip state =
-        match splitFirstMatch (fun v -> v.Type = Ship && not v.IsMoving && v.Location = At (Warehouse A) && v.Cargo.IsNone) state.Vehicles with
-        | Some (emptyShip, otherVehicles) ->
-            let journey = (Warehouse A, state.Time, Port, state.Time + distancePortToA)
-            let movingShip = { emptyShip with Location = Journey journey }
-            sprintf "Returning: %O, %O" emptyShip movingShip.Location |> log state
-            { state with Vehicles = movingShip :: otherVehicles }
+    let returnEmptyVehicle vehicleType location state =
+        match splitFirstMatch (fun v -> v.Type = vehicleType && v.Location = At location && v.Cargo.IsNone) state.Vehicles with
+        | Some (emptyVehicle, otherVehicles) ->
+            let dest, distance =
+                match location with
+                | Port -> Factory, distanceFactoryToPort
+                | Warehouse A -> Port, distancePortToA
+                | Warehouse B -> Factory, distanceFactoryToB
+                | _ -> failwith "Unknown return"
+            let journey = (location, state.Time, dest, state.Time + distance)
+            let movingVehicle = { emptyVehicle with Location = Journey journey }
+            sprintf "Returning: %O, %O" emptyVehicle movingVehicle.Location |> log state
+            { state with Vehicles = movingVehicle :: otherVehicles }
         | _ -> state
     
     let arrive state =
@@ -186,14 +155,16 @@ module Algorithm =
 
     let possibleActions =
         [ arrive
-          loadCargoAtFactory
-          loadCargoAtPort
-          despatchLoadedTruck
-          despatchShip
-          unloadTruckAtPort
-          unloadVehicleAtWarehouse
-          returnEmptyTruck
-          returnEmptyShip
+          loadCargo Truck Factory
+          loadCargo Ship Port
+          despatch Truck Factory
+          despatch Ship Port
+          unload Truck Port
+          unload Ship (Warehouse A)
+          unload Truck (Warehouse B)
+          returnEmptyVehicle Truck Port
+          returnEmptyVehicle Ship (Warehouse A)
+          returnEmptyVehicle Truck (Warehouse B)
           timePasses // must be last
         ]
 
