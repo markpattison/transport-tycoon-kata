@@ -94,8 +94,14 @@ module Algorithm =
             | [] -> None
         split [] lst
 
+    let emptyAt vehicleType location vehicle =
+        vehicle.Type = vehicleType && vehicle.Location = At location && vehicle.Cargo.IsNone
+
+    let loadedAt vehicleType location vehicle =
+        vehicle.Type = vehicleType && vehicle.Location = At location && vehicle.Cargo.IsSome
+
     let loadCargo vehicleType location state =
-        match splitFirstMatch (fun v -> v.Type = vehicleType && v.Location = At location && v.Cargo = None) state.Vehicles, state.Queues.[location] with
+        match splitFirstMatch (emptyAt vehicleType location) state.Vehicles, state.Queues.[location] with
         | Some (emptyVehicle, otherVehicles), cargoToLoad :: remainingCargo ->
             let loadedVehicle = { emptyVehicle with Cargo = Some cargoToLoad }
             sprintf "Loading: %O onto %O" cargoToLoad emptyVehicle |> log state
@@ -103,7 +109,7 @@ module Algorithm =
         | _ -> state            
 
     let despatch vehicleType location findDestination state =
-        match splitFirstMatch (fun v -> v.Type = vehicleType && v.Location = At location && v.Cargo.IsSome) state.Vehicles with
+        match splitFirstMatch (loadedAt vehicleType location) state.Vehicles with
         | Some (loadedVehicle, otherVehicles) ->
             let destination = findDestination loadedVehicle.Cargo.Value
             let journey = (location, state.Time, destination, state.Time + distance location destination)
@@ -113,7 +119,7 @@ module Algorithm =
         | _ -> state
     
     let unload vehicleType location state =
-        match splitFirstMatch (fun v -> v.Type = vehicleType && v.Location = At location && v.Cargo.IsSome) state.Vehicles with
+        match splitFirstMatch (loadedAt vehicleType location) state.Vehicles with
         | Some (loadedVehicle, otherVehicles) ->
             let unloadedVehicle, cargo = unloadVehicle loadedVehicle
             sprintf "Unloading: %O" loadedVehicle |> log state
@@ -121,7 +127,7 @@ module Algorithm =
         | _ -> state        
 
     let returnEmptyVehicle vehicleType location destination state =
-        match splitFirstMatch (fun v -> v.Type = vehicleType && v.Location = At location && v.Cargo.IsNone) state.Vehicles with
+        match splitFirstMatch (emptyAt vehicleType location) state.Vehicles with
         | Some (emptyVehicle, otherVehicles) ->
             let journey = (location, state.Time, destination, state.Time + distance location destination)
             let movingVehicle = { emptyVehicle with Location = Journey journey }
