@@ -102,15 +102,10 @@ module Algorithm =
             { state with Queues = state.Queues.Add(location, remainingCargo); Vehicles = loadedVehicle :: otherVehicles }
         | _ -> state            
 
-    let despatch vehicleType location state =
+    let despatch vehicleType location findDestination state =
         match splitFirstMatch (fun v -> v.Type = vehicleType && v.Location = At location && v.Cargo.IsSome) state.Vehicles with
         | Some (loadedVehicle, otherVehicles) ->
-            let destination =
-                match location, loadedVehicle.Cargo.Value with
-                | Factory, Destination A -> Port
-                | Factory, Destination B -> Warehouse B
-                | Port, Destination A -> Warehouse A
-                | _ -> failwith "Unknown despatch"
+            let destination = findDestination loadedVehicle.Cargo.Value
             let journey = (location, state.Time, destination, state.Time + distance location destination)
             let movingVehicle = { loadedVehicle with Location = Journey journey }
             sprintf "Despatching: %O, %O" loadedVehicle movingVehicle.Location |> log state
@@ -125,15 +120,9 @@ module Algorithm =
             { state with Queues = state.Queues.Add(location, cargo :: state.Queues.[location]); Vehicles = unloadedVehicle :: otherVehicles }
         | _ -> state        
 
-    let returnEmptyVehicle vehicleType location state =
+    let returnEmptyVehicle vehicleType location destination state =
         match splitFirstMatch (fun v -> v.Type = vehicleType && v.Location = At location && v.Cargo.IsNone) state.Vehicles with
         | Some (emptyVehicle, otherVehicles) ->
-            let destination =
-                match location with
-                | Port -> Factory
-                | Warehouse A -> Port
-                | Warehouse B -> Factory
-                | _ -> failwith "Unknown return"
             let journey = (location, state.Time, destination, state.Time + distance location destination)
             let movingVehicle = { emptyVehicle with Location = Journey journey }
             sprintf "Returning: %O, %O" emptyVehicle movingVehicle.Location |> log state
@@ -158,14 +147,14 @@ module Algorithm =
         [ arrive
           loadCargo Truck Factory
           loadCargo Ship Port
-          despatch Truck Factory
-          despatch Ship Port
+          despatch Truck Factory (fun cargo -> match cargo with | Destination A -> Port | Destination B -> Warehouse B)
+          despatch Ship Port (fun _ -> Warehouse A)
           unload Truck Port
           unload Ship (Warehouse A)
           unload Truck (Warehouse B)
-          returnEmptyVehicle Truck Port
-          returnEmptyVehicle Ship (Warehouse A)
-          returnEmptyVehicle Truck (Warehouse B)
+          returnEmptyVehicle Truck Port Factory
+          returnEmptyVehicle Ship (Warehouse A) Port
+          returnEmptyVehicle Truck (Warehouse B) Factory
           timePasses // must be last
         ]
 
