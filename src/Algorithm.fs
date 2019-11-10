@@ -4,6 +4,9 @@ type Destination = A | B
 
 type Cargo =
     | Destination of Destination
+    override this.ToString() =
+        match this with
+        | Destination d -> sprintf "cargo for %O" d
 
 type Place =
     | Factory
@@ -14,6 +17,10 @@ type Location =
     | At of Place
     | Journey of Place * int * Place * int // from, departure time, to, arrival time
     member this.IsWarehouse = match this with | At (Warehouse _) -> true | _ -> false
+    override this.ToString() =
+        match this with
+        | At place -> sprintf "at %O" place
+        | Journey (from, leftAt, goingTo, arrivingAt) -> sprintf "travelling from %O (left at %i) to %O (arriving at %i)" from leftAt goingTo arrivingAt
 
 type VehicleType =
     | Truck
@@ -26,6 +33,10 @@ type Vehicle =
         Cargo: Cargo option
     }
     member this.IsMoving = match this.Location with | Journey _ -> true | _ -> false
+    override this.ToString() =
+        match this.Cargo with
+        | None -> sprintf "empty %O %O" this.Type this.Location
+        | Some cargo -> sprintf "%O (%O) %O" this.Type cargo this.Location
 
 type State =
     {
@@ -41,7 +52,7 @@ module Algorithm =
 
     let logging = false
 
-    let log msg = if logging then printfn "%s" msg
+    let log state msg = if logging then printfn "Time %i: %s" state.Time msg
 
     let distanceFactoryToPort = 1
     let distancePortToA = 4
@@ -92,7 +103,7 @@ module Algorithm =
         match splitFirstMatch (fun v -> v.Type = Truck && v.Location = At Factory && v.Cargo = None) state.Vehicles, state.FactoryQueue with
         | Some (emptyTruck, otherVehicles), cargoToLoad :: remainingCargo ->
             let loadedVehicle = { emptyTruck with Cargo = Some cargoToLoad }
-            sprintf "Loading cargo %O at factory" cargoToLoad |> log
+            sprintf "Loading: %O onto %O" cargoToLoad emptyTruck |> log state
             { state with FactoryQueue = remainingCargo; Vehicles = loadedVehicle :: otherVehicles }
         | _ -> state            
 
@@ -100,7 +111,7 @@ module Algorithm =
         match splitFirstMatch (fun v -> v.Type = Ship && v.Location = At Port && v.Cargo = None) state.Vehicles, state.PortQueue with
         | Some (emptyShip, otherVehicles), cargoToLoad :: remainingCargo ->
             let loadedVehicle = { emptyShip with Cargo = Some cargoToLoad }
-            sprintf "Loading cargo %O at port" cargoToLoad |> log
+            sprintf "Loading: %O onto %O" cargoToLoad emptyShip |> log state
             { state with PortQueue = remainingCargo; Vehicles = loadedVehicle :: otherVehicles }
         | _ -> state  
 
@@ -112,7 +123,7 @@ module Algorithm =
                 | Destination A -> (Factory, state.Time, Port, state.Time + distanceFactoryToPort)
                 | Destination B -> (Factory, state.Time, Warehouse B, state.Time + distanceFactoryToB)
             let movingTruck = { loadedTruck with Location = Journey journey }
-            sprintf "Despatching loaded truck from factory with cargo %O" loadedTruck.Cargo.Value |> log
+            sprintf "Despatching: %O, %O" loadedTruck movingTruck.Location |> log state
             { state with Vehicles = movingTruck :: otherVehicles }
         | _ -> state
 
@@ -120,7 +131,7 @@ module Algorithm =
         match splitFirstMatch (fun v -> v.Type = Truck && v.Location = At Port && v.Cargo.IsSome) state.Vehicles with
         | Some (loadedTruck, otherVehicles) ->
             let unloadedTruck, cargo = unloadVehicle loadedTruck
-            sprintf "Unloading cargo %O at port" cargo |> log
+            sprintf "Unloading: %O" loadedTruck |> log state
             { state with PortQueue = cargo :: state.PortQueue; Vehicles = unloadedTruck :: otherVehicles }
         | _ -> state        
 
@@ -129,8 +140,8 @@ module Algorithm =
         | Some (loadedVehicle, otherVehicles) ->
             let unloadedVehicle, cargo = unloadVehicle loadedVehicle
             match loadedVehicle.Location with
-            | At (Warehouse A) -> sprintf "Unloading cargo %O at warehouse A" cargo |> log; { state with WarehouseA = cargo :: state.WarehouseA; Vehicles = unloadedVehicle :: otherVehicles }
-            | At (Warehouse B) -> sprintf "Unloading cargo %O at warehouse B" cargo |> log; { state with WarehouseB = cargo :: state.WarehouseB; Vehicles = unloadedVehicle :: otherVehicles }
+            | At (Warehouse A) -> sprintf "Unloading: %O" loadedVehicle |> log state; { state with WarehouseA = cargo :: state.WarehouseA; Vehicles = unloadedVehicle :: otherVehicles }
+            | At (Warehouse B) -> sprintf "Unloading: %O" loadedVehicle |> log state; { state with WarehouseB = cargo :: state.WarehouseB; Vehicles = unloadedVehicle :: otherVehicles }
             | _ -> failwith "Impossible to unload"
         | _ -> state 
     
@@ -143,7 +154,7 @@ module Algorithm =
                 | At (Warehouse B) -> (Warehouse B, state.Time, Factory, state.Time + distanceFactoryToB)
                 | _ -> failwith "Impossible truck"
             let movingTruck = { emptyTruck with Location = Journey journey }
-            sprintf "Empty truck returning from %O" emptyTruck.Location |> log
+            sprintf "Returning: %O, %O" emptyTruck movingTruck.Location |> log state
             { state with Vehicles = movingTruck :: otherVehicles }
         | _ -> state
     
@@ -152,7 +163,7 @@ module Algorithm =
         | Some (loadedShip, otherVehicles) ->
             let journey = (Port, state.Time, Warehouse A, state.Time + distancePortToA)
             let movingShip = { loadedShip with Location = Journey journey }
-            sprintf "Ship despatched with cargo %O" loadedShip.Cargo.Value |> log
+            sprintf "Despatching: %O, %O" loadedShip movingShip.Location |> log state
             { state with Vehicles = movingShip :: otherVehicles }
         | _ -> state
 
@@ -161,7 +172,7 @@ module Algorithm =
         | Some (emptyShip, otherVehicles) ->
             let journey = (Warehouse A, state.Time, Port, state.Time + distancePortToA)
             let movingShip = { emptyShip with Location = Journey journey }
-            sprintf "Empty ship returning from %O" emptyShip.Location |> log
+            sprintf "Returning: %O, %O" emptyShip movingShip.Location |> log state
             { state with Vehicles = movingShip :: otherVehicles }
         | _ -> state
     
@@ -170,26 +181,25 @@ module Algorithm =
         | Some (arrivingVehicle, otherVehicles) ->
             let location = match arrivingVehicle.Location with | Journey (_, _, loc, _) -> loc | _ -> failwith "Location not found"
             let arrived = { arrivingVehicle with Location = At location }
-            sprintf "Vehicle arrives at %O" location |> log
+            sprintf "Arriving: %O" arrivingVehicle |> log state
             { state with Vehicles = arrived :: otherVehicles }
         | _ -> state        
 
     let timePasses state =
         let tNext = state.Time + 1
-        sprintf "- Time %i" tNext |> log
         if tNext > 50 then failwithf "*** TIME 50 ***/n%O" state
         { state with Time = tNext }
 
     let possibleActions =
-        [ loadCargoAtFactory
+        [ arrive
+          loadCargoAtFactory
           loadCargoAtPort
           despatchLoadedTruck
+          despatchShip
           unloadTruckAtPort
           unloadVehicleAtWarehouse
           returnEmptyTruck
-          despatchShip
           returnEmptyShip
-          arrive
           timePasses // must be last
         ]
 
@@ -204,12 +214,12 @@ module Algorithm =
     let isCompleted state =
         state.FactoryQueue.IsEmpty && state.PortQueue.IsEmpty && List.forall (fun v -> v.Cargo.IsNone) state.Vehicles
 
-    let rec go state =
+    let rec run state =
         if isCompleted state then
             state
         else
             match tryUpdate state with
-            | Some updated -> go updated
+            | Some updated -> run updated
             | None -> failwith "Uh oh"
 
     let calculateHours (input: string) =
@@ -218,7 +228,7 @@ module Algorithm =
 
         let state = initialState cargo
         
-        let completed = go state
+        let completed = run state
 
         completed.Time
         
