@@ -45,7 +45,7 @@ type State =
 
 module Algorithm =
 
-    let logging = true
+    let logging = false
 
     let log state msg = if logging then printfn "Time %i: %s" state.Time msg
 
@@ -126,7 +126,7 @@ module Algorithm =
             { state with Queues = state.Queues.Add(location, cargo :: state.Queues.[location]); Vehicles = unloadedVehicle :: otherVehicles }
         | _ -> state        
 
-    let returnEmptyVehicle vehicleType location destination state =
+    let returnEmpty vehicleType location destination state =
         match splitFirstMatch (emptyAt vehicleType location) state.Vehicles with
         | Some (emptyVehicle, otherVehicles) ->
             let journey = (location, state.Time, destination, state.Time + distance location destination)
@@ -158,9 +158,9 @@ module Algorithm =
           unload Truck Port
           unload Ship (Warehouse A)
           unload Truck (Warehouse B)
-          returnEmptyVehicle Truck Port Factory
-          returnEmptyVehicle Ship (Warehouse A) Port
-          returnEmptyVehicle Truck (Warehouse B) Factory
+          returnEmpty Truck Port Factory
+          returnEmpty Ship (Warehouse A) Port
+          returnEmpty Truck (Warehouse B) Factory
           timePasses // must be last
         ]
 
