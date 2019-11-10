@@ -16,7 +16,6 @@ type Place =
 type Location =
     | At of Place
     | Journey of Place * int * Place * int // from, departure time, to, arrival time
-    member this.IsWarehouse = match this with | At (Warehouse _) -> true | _ -> false
     override this.ToString() =
         match this with
         | At place -> sprintf "at %O" place
@@ -32,7 +31,6 @@ type Vehicle =
         Location: Location
         Cargo: Cargo option
     }
-    member this.IsMoving = match this.Location with | Journey _ -> true | _ -> false
     override this.ToString() =
         match this.Cargo with
         | None -> sprintf "empty %O %O" this.Type this.Location
@@ -51,9 +49,12 @@ module Algorithm =
 
     let log state msg = if logging then printfn "Time %i: %s" state.Time msg
 
-    let distanceFactoryToPort = 1
-    let distancePortToA = 4
-    let distanceFactoryToB = 5
+    let distance location1 location2 =
+        match location1, location2 with
+        | Factory, Port        | Port, Factory        -> 1
+        | Port, Warehouse A    | Warehouse A, Port    -> 4
+        | Factory, Warehouse B | Warehouse B, Factory -> 5
+        | _ -> failwith "Impossible journey"
 
     let initialVehicles =
         [ { Type = Truck; Location = At Factory; Cargo = None }
@@ -104,13 +105,13 @@ module Algorithm =
     let despatch vehicleType location state =
         match splitFirstMatch (fun v -> v.Type = vehicleType && v.Location = At location && v.Cargo.IsSome) state.Vehicles with
         | Some (loadedVehicle, otherVehicles) ->
-            let dest, distance =
+            let destination =
                 match location, loadedVehicle.Cargo.Value with
-                | Factory, Destination A -> Port, distanceFactoryToPort
-                | Factory, Destination B -> Warehouse B, distanceFactoryToB
-                | Port, Destination A -> Warehouse A, distancePortToA
+                | Factory, Destination A -> Port
+                | Factory, Destination B -> Warehouse B
+                | Port, Destination A -> Warehouse A
                 | _ -> failwith "Unknown despatch"
-            let journey = (location, state.Time, dest, state.Time + distance)
+            let journey = (location, state.Time, destination, state.Time + distance location destination)
             let movingVehicle = { loadedVehicle with Location = Journey journey }
             sprintf "Despatching: %O, %O" loadedVehicle movingVehicle.Location |> log state
             { state with Vehicles = movingVehicle :: otherVehicles }
@@ -127,13 +128,13 @@ module Algorithm =
     let returnEmptyVehicle vehicleType location state =
         match splitFirstMatch (fun v -> v.Type = vehicleType && v.Location = At location && v.Cargo.IsNone) state.Vehicles with
         | Some (emptyVehicle, otherVehicles) ->
-            let dest, distance =
+            let destination =
                 match location with
-                | Port -> Factory, distanceFactoryToPort
-                | Warehouse A -> Port, distancePortToA
-                | Warehouse B -> Factory, distanceFactoryToB
+                | Port -> Factory
+                | Warehouse A -> Port
+                | Warehouse B -> Factory
                 | _ -> failwith "Unknown return"
-            let journey = (location, state.Time, dest, state.Time + distance)
+            let journey = (location, state.Time, destination, state.Time + distance location destination)
             let movingVehicle = { emptyVehicle with Location = Journey journey }
             sprintf "Returning: %O, %O" emptyVehicle movingVehicle.Location |> log state
             { state with Vehicles = movingVehicle :: otherVehicles }
