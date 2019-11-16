@@ -1,6 +1,6 @@
 module TransportTycoon.Algorithm
 
-let logging = false
+let logging = true
 
 let log state msg = if logging then printfn "Time %i: %s" state.Time msg
 
@@ -31,7 +31,6 @@ let loadCargo vehicleType location state =
     match state with
     | EmptyVehicleAt vehicleType location (emptyVehicle, otherVehicles) & CargoAt location (cargoToLoad, remainingCargo) ->
         let loadedVehicle = { emptyVehicle with Cargo = Some cargoToLoad }
-        sprintf "Loading: %O onto %O" cargoToLoad emptyVehicle |> log state
         Some { state with Queues = state.Queues.Add(location, remainingCargo); Vehicles = loadedVehicle :: otherVehicles }
     | _ -> None    
 
@@ -49,7 +48,6 @@ let unload vehicleType location state =
     match state with
     | LoadedVehicleAt vehicleType location (loadedVehicle, cargo, otherVehicles) ->
         let unloadedVehicle = { loadedVehicle with Cargo = None }
-        sprintf "Unloading: %O" loadedVehicle |> log state
         Some { state with Queues = state.Queues.Add(location, cargo :: state.Queues.[location]); Vehicles = unloadedVehicle :: otherVehicles }
     | _ -> None    
 
@@ -66,7 +64,6 @@ let arriveAll state =
     let arrive vehicle =
         match vehicle.Location with
         | Journey (_, _, location, t) when t = state.Time ->
-            sprintf "Arriving: %O" vehicle |> log state
             { vehicle with Location = At location }
         | _ -> vehicle
     
