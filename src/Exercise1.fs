@@ -10,9 +10,9 @@ let distances location1 location2 =
     | _ -> failwith "Impossible journey"
 
 let initialVehicles =
-    [ { Type = Truck; Location = At Factory; Cargo = None }
-      { Type = Truck; Location = At Factory; Cargo = None }
-      { Type = Ship; Location = At Port; Cargo = None }
+    [ { Id = 0; Type = Truck; Location = At Factory; Cargo = None }
+      { Id = 1; Type = Truck; Location = At Factory; Cargo = None }
+      { Id = 2; Type = Ship; Location = At Port; Cargo = None }
     ]
 
 let initialState cargo =
@@ -24,7 +24,7 @@ let initialState cargo =
 let scenarioRules =
     [ loadCargo Truck Factory
       loadCargo Ship Port
-      despatch Truck Factory (fun cargo -> match cargo with | Destination A -> Port | Destination B -> Warehouse B)
+      despatch Truck Factory (fun cargo -> match cargo.Destination with | A -> Port | B -> Warehouse B)
       despatch Ship Port (fun _ -> Warehouse A)
       unload Truck Port
       unload Ship (Warehouse A)
@@ -35,7 +35,7 @@ let scenarioRules =
     ]
 
 let calculateHours destinations =
-    let cargo = destinations |> List.map Destination
+    let cargo = destinations |> List.mapi (fun i dest -> { Id = i; Destination = dest } )
     let state = initialState cargo
     let completed = run scenarioRules state
 
