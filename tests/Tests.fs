@@ -52,6 +52,6 @@ let ``split first match works correctly when no matches present`` () =
 [<TestCase("ABB", 7)>]
 [<TestCase("AABABBAB", 29)>]
 [<TestCase("ABBBABAAABBB", 41)>]
-let ``Sample cargo lists give correct answers`` input expected =
-    let result = input |> Program.parseDestinations |> Algorithm.calculateHours
+let ``Exercise 1 sample cargo lists give correct answers`` input expected =
+    let result = input |> Program.parseDestinations |> Exercise1.calculateHours
     Assert.AreEqual(expected, result)

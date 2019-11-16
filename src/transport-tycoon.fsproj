@@ -6,6 +6,7 @@
   <ItemGroup>
     <Compile Include="Types.fs" />
     <Compile Include="Algorithm.fs" />
+    <Compile Include="Exercise1.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <Import Project="..\.paket\Paket.Restore.targets" />

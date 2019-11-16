@@ -41,4 +41,5 @@ type State =
         Time: int
         Queues: Map<Place, Cargo list>
         Vehicles: Vehicle list
+        Distances: Place -> Place -> int
     }

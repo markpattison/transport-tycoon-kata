@@ -18,7 +18,7 @@ let main argv =
     | [| |] -> printfn "No input provided."
     | [| s |] ->
         let destinations = parseDestinations s
-        let result = Algorithm.calculateHours destinations
+        let result = Exercise1.calculateHours destinations
         printfn "Input was: %s" s
         printfn "Result   : %i" result
     | _ -> printfn "Too many inputs provided."    
