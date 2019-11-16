@@ -4,11 +4,6 @@ let logging = false
 
 let log state msg = if logging then printfn "Time %i: %s" state.Time msg
 
-let unloadVehicle v =
-    match v.Cargo with
-    | Some cargo -> { v with Cargo = None }, cargo
-    | None -> failwith "Cannot unload empty vehicle"
-
 let splitFirstMatch predicate lst =
     let rec split acc l =
         match l with
@@ -24,7 +19,7 @@ let (|EmptyVehicleAt|_|) vehicleType location state =
 
 let (|LoadedVehicleAt|_|) vehicleType location state =
     match splitFirstMatch (fun v -> v.Type = vehicleType && v.Location = At location && v.Cargo.IsSome) state.Vehicles with
-    | Some (loadedVehicle, otherVehicles) -> Some (loadedVehicle, otherVehicles)
+    | Some (loadedVehicle, otherVehicles) -> Some (loadedVehicle, loadedVehicle.Cargo.Value, otherVehicles)
     | _ -> None
 
 let (|CargoAt|_|) location state =
@@ -42,7 +37,7 @@ let loadCargo vehicleType location state =
 
 let despatch vehicleType location findDestination state =
     match state with
-    | LoadedVehicleAt vehicleType location (loadedVehicle, otherVehicles) ->
+    | LoadedVehicleAt vehicleType location (loadedVehicle, _, otherVehicles) ->
         let destination = findDestination loadedVehicle.Cargo.Value
         let journey = (location, state.Time, destination, state.Time + state.Distances location destination)
         let movingVehicle = { loadedVehicle with Location = Journey journey }
@@ -52,8 +47,8 @@ let despatch vehicleType location findDestination state =
 
 let unload vehicleType location state =
     match state with
-    | LoadedVehicleAt vehicleType location (loadedVehicle, otherVehicles) ->
-        let unloadedVehicle, cargo = unloadVehicle loadedVehicle
+    | LoadedVehicleAt vehicleType location (loadedVehicle, cargo, otherVehicles) ->
+        let unloadedVehicle = { loadedVehicle with Cargo = None }
         sprintf "Unloading: %O" loadedVehicle |> log state
         Some { state with Queues = state.Queues.Add(location, cargo :: state.Queues.[location]); Vehicles = unloadedVehicle :: otherVehicles }
     | _ -> None    
