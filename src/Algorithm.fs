@@ -68,15 +68,14 @@ let returnEmpty vehicleType location destination state =
     | _ -> None    
 
 let arriveAll state =
-    let updatedVehicles =
-        state.Vehicles
-        |> List.map (fun v ->
-            match v.Location with
-            | Journey (_, _, location, t) when t = state.Time ->
-                sprintf "Arriving: %O" v |> log state
-                { v with Location = At location }
-            | _ -> v)
-    { state with Vehicles = updatedVehicles }
+    let arrive vehicle =
+        match vehicle.Location with
+        | Journey (_, _, location, t) when t = state.Time ->
+            sprintf "Arriving: %O" vehicle |> log state
+            { vehicle with Location = At location }
+        | _ -> vehicle
+    
+    { state with Vehicles = state.Vehicles |> List.map arrive }
 
 let timePasses state =
     let tNext = state.Time + 1
