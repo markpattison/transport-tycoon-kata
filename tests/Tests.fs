@@ -8,7 +8,7 @@ let ``destinations parsed correctly`` () =
     let input = "ABBA"
     let expected = [ A; B; B; A ]
     
-    let result = Algorithm.parseDestinations input
+    let result = Program.parseDestinations input
 
     Assert.AreEqual(expected, result)
 
@@ -16,7 +16,7 @@ let ``destinations parsed correctly`` () =
 let ``invalid destinations throw an error`` () =
     let input = "X"
 
-    Assert.Throws<Exception>(fun () -> Algorithm.parseDestinations input |> ignore)
+    Assert.Throws<Exception>(fun () -> Program.parseDestinations input |> ignore)
     |> ignore
 
 [<Test>]
@@ -53,5 +53,5 @@ let ``split first match works correctly when no matches present`` () =
 [<TestCase("AABABBAB", 29)>]
 [<TestCase("ABBBABAAABBB", 41)>]
 let ``Sample cargo lists give correct answers`` input expected =
-    let result = Algorithm.calculateHours input
+    let result = input |> Program.parseDestinations |> Algorithm.calculateHours
     Assert.AreEqual(expected, result)

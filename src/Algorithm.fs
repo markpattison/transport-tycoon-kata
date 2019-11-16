@@ -22,15 +22,6 @@ let initialState cargo =
       Queues = [ (Factory, cargo); (Port, []); (Warehouse A, []); (Warehouse B, []) ] |> Map.ofList
       Vehicles = initialVehicles }
 
-let parseDestinations (input: string) =
-    input
-    |> Seq.map (fun c ->
-        match c with
-        | 'A' -> A
-        | 'B' -> B
-        | _ -> failwithf "Unknown destination: %c" c)
-    |> Seq.toList        
-
 let unloadVehicle v =
     match v.Cargo with
     | Some cargo -> { v with Cargo = None }, cargo
@@ -138,8 +129,7 @@ let scenarioRules =
       returnEmpty Truck (Warehouse B) Factory
     ]
 
-let calculateHours (input: string) =
-    let destinations = parseDestinations input
+let calculateHours destinations =
     let cargo = destinations |> List.map Destination
 
     let state = initialState cargo
