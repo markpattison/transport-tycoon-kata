@@ -1,9 +1,5 @@
 module TransportTycoon.Algorithm
 
-let logging = true
-
-let log state msg = if logging then printfn "Time %i: %s" state.Time msg
-
 let splitFirstMatch predicate lst =
     let rec split acc l =
         match l with
@@ -40,7 +36,7 @@ let despatch vehicleType location findDestination state =
         let destination = findDestination loadedVehicle.Cargo.Value
         let journey = (location, state.Time, destination, state.Time + state.Distances location destination)
         let movingVehicle = { loadedVehicle with Location = Journey journey }
-        sprintf "Despatching: %O, %O" loadedVehicle movingVehicle.Location |> log state
+        sprintf "Despatching: %O, %O" loadedVehicle movingVehicle.Location |> state.Log
         Some { state with Vehicles = movingVehicle :: otherVehicles }
     | _ -> None    
 
@@ -56,7 +52,7 @@ let returnEmpty vehicleType location destination state =
     | EmptyVehicleAt vehicleType location (emptyVehicle, otherVehicles) ->
         let journey = (location, state.Time, destination, state.Time + state.Distances location destination)
         let movingVehicle = { emptyVehicle with Location = Journey journey }
-        sprintf "Returning: %O, %O" emptyVehicle movingVehicle.Location |> log state
+        sprintf "Returning: %O, %O" emptyVehicle movingVehicle.Location |> state.Log
         Some { state with Vehicles = movingVehicle :: otherVehicles }
     | _ -> None    
 

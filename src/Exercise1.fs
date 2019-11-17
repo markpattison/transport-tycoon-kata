@@ -15,11 +15,12 @@ let initialVehicles =
       { Id = 2; Type = Ship; Location = At Port; Cargo = None }
     ]
 
-let initialState cargo =
+let initialState log cargo =
     { Time = 0
       Queues = [ (Factory, cargo); (Port, []); (Warehouse A, []); (Warehouse B, []) ] |> Map.ofList
       Vehicles = initialVehicles
-      Distances = distances }
+      Distances = distances
+      Log = log }
 
 let scenarioRules =
     [ loadCargo Truck Factory
@@ -34,9 +35,9 @@ let scenarioRules =
       returnEmpty Truck (Warehouse B) Factory
     ]
 
-let calculateHours destinations =
+let calculateHours logger destinations =
     let cargo = destinations |> List.mapi (fun i dest -> { Id = i; Destination = dest } )
-    let state = initialState cargo
+    let state = initialState logger cargo
     let completed = run scenarioRules state
 
     completed.Time

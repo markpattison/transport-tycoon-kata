@@ -11,6 +11,14 @@ let parseDestinations (input: string) =
         | _ -> failwithf "Unknown destination: %c" c)
     |> Seq.toList    
 
+type Logger =
+    {
+        mutable LogsRev: string list
+    }
+    member this.Logs = List.rev this.LogsRev
+    member this.Add s = this.LogsRev <- s :: this.LogsRev
+    static member Create = { LogsRev = [] }
+
 [<EntryPoint>]
 let main argv =
 
@@ -18,9 +26,11 @@ let main argv =
     | [| |] -> printfn "No input provided."
     | [| s |] ->
         let destinations = parseDestinations s
-        let result = Exercise1.calculateHours destinations
+        let logger = Logger.Create
+        let result = Exercise1.calculateHours logger.Add destinations
         printfn "Input was: %s" s
         printfn "Result   : %i" result
+        logger.Logs |> List.iter (printfn "%s")
     | _ -> printfn "Too many inputs provided."    
 
     0 // return an integer exit code

@@ -3,6 +3,8 @@ module TransportTycoon.Tests
 open System
 open NUnit.Framework
 
+let dummyLog = fun _ -> ()
+
 [<Test>]
 let ``destinations parsed correctly`` () =
     let input = "ABBA"
@@ -53,5 +55,5 @@ let ``split first match works correctly when no matches present`` () =
 [<TestCase("AABABBAB", 29)>]
 [<TestCase("ABBBABAAABBB", 41)>]
 let ``Exercise 1 sample cargo lists give correct answers`` input expected =
-    let result = input |> Program.parseDestinations |> Exercise1.calculateHours
+    let result = input |> Program.parseDestinations |> Exercise1.calculateHours dummyLog
     Assert.AreEqual(expected, result)
