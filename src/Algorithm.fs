@@ -93,11 +93,12 @@ let isCompleted state =
 
 let run rules originalState =
     let rec runRec state =
-        if isCompleted state then
-            state
-        else
-            let state' = arriveAll state
-            match List.tryPick (fun f -> f state') rules with
-            | Some state'' -> runRec state''
-            | None -> runRec (timePasses state')
+        let state' = arriveAll state
+        match List.tryPick (fun f -> f state') rules with
+        | Some state'' -> runRec state''
+        | None ->
+            if isCompleted state' then
+                state'
+            else
+                runRec (timePasses state')
     runRec originalState
