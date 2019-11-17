@@ -23,12 +23,25 @@ let (|CargoAt|_|) location state =
     | cargoToLoad :: remainingCargo -> Some (cargoToLoad, remainingCargo)
     | [] -> None
 
+let cargoLogString (cargo: Cargo option) =
+    match cargo with
+    | Some c -> sprintf """, "cargo": [{"cargo_id": %i, "destination": %O, "origin": "%O"}]""" c.Id c.Destination c.Origin
+    | None -> ""
+
+let logDepart state vehicle location destination =
+    sprintf """{"event": "DEPART", "time": %i, "transport_id": %i, "kind": "%O", "location": "%O", "destination": %O%s}""" state.Time vehicle.Id vehicle.Type location destination (cargoLogString vehicle.Cargo)
+    |> state.Log
+
+let logArrive state vehicle location =
+    sprintf """{"event": "ARRIVE", "time": %i, "transport_id": %i, "kind": "%O", "location": "%O"%s}""" state.Time vehicle.Id vehicle.Type location (cargoLogString vehicle.Cargo)
+    |> state.Log
+
 let loadCargo vehicleType location state =
     match state with
     | EmptyVehicleAt vehicleType location (emptyVehicle, otherVehicles) & CargoAt location (cargoToLoad, remainingCargo) ->
         let loadedVehicle = { emptyVehicle with Cargo = Some cargoToLoad }
         Some { state with Queues = state.Queues.Add(location, remainingCargo); Vehicles = loadedVehicle :: otherVehicles }
-    | _ -> None    
+    | _ -> None
 
 let despatch vehicleType location findDestination state =
     match state with
@@ -36,30 +49,35 @@ let despatch vehicleType location findDestination state =
         let destination = findDestination loadedVehicle.Cargo.Value
         let journey = (location, state.Time, destination, state.Time + state.Distances location destination)
         let movingVehicle = { loadedVehicle with Location = Journey journey }
-        sprintf "Despatching: %O, %O" loadedVehicle movingVehicle.Location |> state.Log
+
+        logDepart state movingVehicle location destination
+
         Some { state with Vehicles = movingVehicle :: otherVehicles }
-    | _ -> None    
+    | _ -> None
 
 let unload vehicleType location state =
     match state with
     | LoadedVehicleAt vehicleType location (loadedVehicle, cargo, otherVehicles) ->
         let unloadedVehicle = { loadedVehicle with Cargo = None }
         Some { state with Queues = state.Queues.Add(location, cargo :: state.Queues.[location]); Vehicles = unloadedVehicle :: otherVehicles }
-    | _ -> None    
+    | _ -> None
 
 let returnEmpty vehicleType location destination state =
     match state with
     | EmptyVehicleAt vehicleType location (emptyVehicle, otherVehicles) ->
         let journey = (location, state.Time, destination, state.Time + state.Distances location destination)
         let movingVehicle = { emptyVehicle with Location = Journey journey }
-        sprintf "Returning: %O, %O" emptyVehicle movingVehicle.Location |> state.Log
+
+        logDepart state movingVehicle location destination
+
         Some { state with Vehicles = movingVehicle :: otherVehicles }
-    | _ -> None    
+    | _ -> None
 
 let arriveAll state =
     let arrive vehicle =
         match vehicle.Location with
         | Journey (_, _, location, t) when t = state.Time ->
+            logArrive state vehicle location
             { vehicle with Location = At location }
         | _ -> vehicle
     

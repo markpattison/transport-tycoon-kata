@@ -27,9 +27,10 @@ let main argv =
     | [| s |] ->
         let destinations = parseDestinations s
         let logger = Logger.Create
+        sprintf "# Deliver %s" s |> logger.Add
+
         let result = Exercise1.calculateHours logger.Add destinations
-        printfn "Input was: %s" s
-        printfn "Result   : %i" result
+        
         logger.Logs |> List.iter (printfn "%s")
     | _ -> printfn "Too many inputs provided."    
 

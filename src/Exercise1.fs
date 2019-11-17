@@ -36,7 +36,7 @@ let scenarioRules =
     ]
 
 let calculateHours logger destinations =
-    let cargo = destinations |> List.mapi (fun i dest -> { Id = i; Destination = dest } )
+    let cargo = destinations |> List.mapi (fun i dest -> { Id = i; Destination = dest; Origin = Factory } )
     let state = initialState logger cargo
     let completed = run scenarioRules state
 

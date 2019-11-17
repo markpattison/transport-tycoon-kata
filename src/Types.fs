@@ -2,12 +2,6 @@ namespace TransportTycoon
 
 type Destination = A | B
 
-type Cargo =
-    {
-        Id: int
-        Destination: Destination
-    }
-
 type Place =
     | Factory
     | Port
@@ -17,6 +11,13 @@ type Place =
         | Factory -> "FACTORY"
         | Port -> "PORT"
         | Warehouse dest -> dest.ToString()
+
+type Cargo =
+    {
+        Id: int
+        Destination: Destination
+        Origin: Place
+    }
 
 type Location =
     | At of Place
