@@ -24,13 +24,13 @@ let initialState log cargo =
       Log = log }
 
 let scenarioRules =
-    [ loadCargo Truck Factory
+    [ unload Truck Port
+      unload Ship (Warehouse A)
+      unload Truck (Warehouse B)
+      loadCargo Truck Factory
       loadCargo Ship Port
       despatch Truck Factory (fun cargo -> match cargo.Destination with | A -> Port | B -> Warehouse B)
       despatch Ship Port (fun _ -> Warehouse A)
-      unload Truck Port
-      unload Ship (Warehouse A)
-      unload Truck (Warehouse B)
       returnEmpty Truck Port Factory
       returnEmpty Ship (Warehouse A) Port
       returnEmpty Truck (Warehouse B) Factory
