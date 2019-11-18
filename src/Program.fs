@@ -29,7 +29,7 @@ let main argv =
         let logger = Logger.Create
         sprintf "# Deliver %s" s |> logger.Add
 
-        let result = Exercise1.calculateHours logger.Add destinations
+        let result = Exercise2.calculateHours logger.Add destinations
         
         logger.Logs |> List.iter (printfn "%s")
     | _ -> printfn "Too many inputs provided."    
