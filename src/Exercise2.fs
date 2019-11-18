@@ -28,6 +28,14 @@ let initialState log cargo =
       LoadTimes = loadTimes
       Log = log }
 
+let containsCargoFor dest cargoList = List.exists (fun cargo -> cargo.Destination = dest) cargoList
+
+let shouldDespatchShip state =
+    let anyCargoAtFactoryForA = state.Queues.[Factory] |> containsCargoFor A
+    let anyTrucksWithCargoForA = List.exists (fun vehicle -> vehicle.Type = Truck && vehicle.Cargo |> containsCargoFor A) state.Vehicles
+
+    not anyCargoAtFactoryForA && not anyTrucksWithCargoForA
+
 let scenarioRules =
     [ unload Truck Port
       unload Ship (Warehouse A)
@@ -35,7 +43,7 @@ let scenarioRules =
       loadCargo Truck Factory
       loadCargo Ship Port
       despatch Truck Factory alwaysDespatch (fun cargo -> match cargo.Destination with | A -> Port | B -> Warehouse B)
-      despatch Ship Port alwaysDespatch (fun _ -> Warehouse A)
+      despatch Ship Port shouldDespatchShip (fun _ -> Warehouse A)
       returnEmpty Truck Port Factory
       returnEmpty Ship (Warehouse A) Port
       returnEmpty Truck (Warehouse B) Factory

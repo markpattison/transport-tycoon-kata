@@ -25,11 +25,6 @@ let (|LoadedVehicleAt|_|) vehicleType location state =
     | Some (loadedVehicle, otherVehicles) -> Some (loadedVehicle, otherVehicles)
     | _ -> None
 
-let (|FullVehicleAt|_|) vehicleType location state =
-    match splitFirstMatch (fun v -> v.Type = vehicleType && v.Location = At location && v.Cargo.Length = v.Capacity) state.Vehicles with
-    | Some (fullVehicle, otherVehicles) -> Some (fullVehicle, otherVehicles)
-    | _ -> None
-
 let (|CargoAt|_|) location state =
     match state.Queues.[location] with
     | cargoToLoad :: remainingCargo -> Some (cargoToLoad, remainingCargo)
@@ -62,8 +57,7 @@ let loadCargo vehicleType location state =
 
 let despatch vehicleType location shouldDespatch findDestination state =
     match state with
-    | FullVehicleAt vehicleType location (vehicle, otherVehicles)
-    | LoadedVehicleAt vehicleType location (vehicle, otherVehicles) when shouldDespatch state ->
+    | LoadedVehicleAt vehicleType location (vehicle, otherVehicles) when vehicle.Cargo.Length = vehicle.Capacity || shouldDespatch state ->
         let destination = findDestination vehicle.Cargo.Head
         let journey = (location, state.Time, destination, state.Time + state.Distances location destination)
         let movingVehicle = { vehicle with Location = Journey journey }
