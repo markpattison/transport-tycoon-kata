@@ -34,8 +34,8 @@ let scenarioRules =
       unload Truck (Warehouse B)
       loadCargo Truck Factory
       loadCargo Ship Port
-      despatch Truck Factory (fun cargo -> match cargo.Destination with | A -> Port | B -> Warehouse B)
-      despatch Ship Port (fun _ -> Warehouse A)
+      despatch Truck Factory alwaysDespatch (fun cargo -> match cargo.Destination with | A -> Port | B -> Warehouse B)
+      despatch Ship Port alwaysDespatch (fun _ -> Warehouse A)
       returnEmpty Truck Port Factory
       returnEmpty Ship (Warehouse A) Port
       returnEmpty Truck (Warehouse B) Factory

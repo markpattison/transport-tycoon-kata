@@ -1,5 +1,7 @@
 module TransportTycoon.Algorithm
 
+let alwaysDespatch = fun _ -> true
+
 let splitFirstMatch predicate lst =
     let rec split acc l =
         match l with
@@ -21,6 +23,11 @@ let (|VehicleNotFullAt|_|) vehicleType location state =
 let (|LoadedVehicleAt|_|) vehicleType location state =
     match splitFirstMatch (fun v -> v.Type = vehicleType && v.Location = At location && not v.Cargo.IsEmpty) state.Vehicles with
     | Some (loadedVehicle, otherVehicles) -> Some (loadedVehicle, otherVehicles)
+    | _ -> None
+
+let (|FullVehicleAt|_|) vehicleType location state =
+    match splitFirstMatch (fun v -> v.Type = vehicleType && v.Location = At location && v.Cargo.Length = v.Capacity) state.Vehicles with
+    | Some (fullVehicle, otherVehicles) -> Some (fullVehicle, otherVehicles)
     | _ -> None
 
 let (|CargoAt|_|) location state =
@@ -53,12 +60,13 @@ let loadCargo vehicleType location state =
         Some { state with Queues = state.Queues.Add(location, remainingCargo); Vehicles = loadedVehicle :: otherVehicles }
     | _ -> None
 
-let despatch vehicleType location findDestination state =
+let despatch vehicleType location shouldDespatch findDestination state =
     match state with
-    | LoadedVehicleAt vehicleType location (loadedVehicle, otherVehicles) ->
-        let destination = findDestination loadedVehicle.Cargo.Head
+    | FullVehicleAt vehicleType location (vehicle, otherVehicles)
+    | LoadedVehicleAt vehicleType location (vehicle, otherVehicles) when shouldDespatch state ->
+        let destination = findDestination vehicle.Cargo.Head
         let journey = (location, state.Time, destination, state.Time + state.Distances location destination)
-        let movingVehicle = { loadedVehicle with Location = Journey journey }
+        let movingVehicle = { vehicle with Location = Journey journey }
 
         logDepart state movingVehicle location destination
 
