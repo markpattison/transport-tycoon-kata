@@ -23,8 +23,8 @@ let ``logged events are as expected`` ()=
     let input = "AB"
     let logger = Program.Logger.Create
 
-    let expected = """{"event": "DEPART", "time": 0, "transport_id": 0, "kind": "TRUCK", "location": "FACTORY", "destination": PORT, "cargo": [{"cargo_id": 0, "destination": A, "origin": "FACTORY"}]}
-{"event": "DEPART", "time": 0, "transport_id": 1, "kind": "TRUCK", "location": "FACTORY", "destination": B, "cargo": [{"cargo_id": 1, "destination": B, "origin": "FACTORY"}]}
+    let expected = """{"event": "DEPART", "time": 0, "transport_id": 1, "kind": "TRUCK", "location": "FACTORY", "destination": B, "cargo": [{"cargo_id": 1, "destination": B, "origin": "FACTORY"}]}
+{"event": "DEPART", "time": 0, "transport_id": 0, "kind": "TRUCK", "location": "FACTORY", "destination": PORT, "cargo": [{"cargo_id": 0, "destination": A, "origin": "FACTORY"}]}
 {"event": "ARRIVE", "time": 1, "transport_id": 0, "kind": "TRUCK", "location": "PORT", "cargo": [{"cargo_id": 0, "destination": A, "origin": "FACTORY"}]}
 {"event": "DEPART", "time": 1, "transport_id": 2, "kind": "SHIP", "location": "PORT", "destination": A, "cargo": [{"cargo_id": 0, "destination": A, "origin": "FACTORY"}]}
 {"event": "DEPART", "time": 1, "transport_id": 0, "kind": "TRUCK", "location": "PORT", "destination": FACTORY}
