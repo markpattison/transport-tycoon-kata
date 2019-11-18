@@ -35,8 +35,9 @@ type Vehicle =
     {
         Id: int
         Type: VehicleType
+        Capacity: int
         Location: Location
-        Cargo: Cargo option
+        Cargo: Cargo list
     }
 
 type State =

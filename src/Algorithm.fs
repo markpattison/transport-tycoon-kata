@@ -9,13 +9,13 @@ let splitFirstMatch predicate lst =
     split [] lst
 
 let (|EmptyVehicleAt|_|) vehicleType location state =
-    match splitFirstMatch (fun v -> v.Type = vehicleType && v.Location = At location && v.Cargo.IsNone) state.Vehicles with
+    match splitFirstMatch (fun v -> v.Type = vehicleType && v.Location = At location && v.Cargo.IsEmpty) state.Vehicles with
     | Some (emptyVehicle, otherVehicles) -> Some (emptyVehicle, otherVehicles)
     | _ -> None
 
 let (|LoadedVehicleAt|_|) vehicleType location state =
-    match splitFirstMatch (fun v -> v.Type = vehicleType && v.Location = At location && v.Cargo.IsSome) state.Vehicles with
-    | Some (loadedVehicle, otherVehicles) -> Some (loadedVehicle, loadedVehicle.Cargo.Value, otherVehicles)
+    match splitFirstMatch (fun v -> v.Type = vehicleType && v.Location = At location && not v.Cargo.IsEmpty) state.Vehicles with
+    | Some (loadedVehicle, otherVehicles) -> Some (loadedVehicle, loadedVehicle.Cargo.Head, otherVehicles)
     | _ -> None
 
 let (|CargoAt|_|) location state =
@@ -23,10 +23,15 @@ let (|CargoAt|_|) location state =
     | cargoToLoad :: remainingCargo -> Some (cargoToLoad, remainingCargo)
     | [] -> None
 
-let cargoLogString (cargo: Cargo option) =
+let singleCargoLogString (cargo: Cargo) =
+    sprintf """{"cargo_id": %i, "destination": %O, "origin": "%O"}""" cargo.Id cargo.Destination cargo.Origin
+
+let cargoLogString cargo =
     match cargo with
-    | Some c -> sprintf """, "cargo": [{"cargo_id": %i, "destination": %O, "origin": "%O"}]""" c.Id c.Destination c.Origin
-    | None -> ""
+    | [] -> ""
+    | _ ->
+        let inner = System.String.Join(", ", cargo |> List.map singleCargoLogString)
+        sprintf """, "cargo": [%s]""" inner
 
 let logDepart state vehicle location destination =
     sprintf """{"event": "DEPART", "time": %i, "transport_id": %i, "kind": "%O", "location": "%O", "destination": %O%s}""" state.Time vehicle.Id vehicle.Type location destination (cargoLogString vehicle.Cargo)
@@ -39,14 +44,14 @@ let logArrive state vehicle location =
 let loadCargo vehicleType location state =
     match state with
     | EmptyVehicleAt vehicleType location (emptyVehicle, otherVehicles) & CargoAt location (cargoToLoad, remainingCargo) ->
-        let loadedVehicle = { emptyVehicle with Cargo = Some cargoToLoad }
+        let loadedVehicle = { emptyVehicle with Cargo = [ cargoToLoad ] }
         Some { state with Queues = state.Queues.Add(location, remainingCargo); Vehicles = loadedVehicle :: otherVehicles }
     | _ -> None
 
 let despatch vehicleType location findDestination state =
     match state with
     | LoadedVehicleAt vehicleType location (loadedVehicle, _, otherVehicles) ->
-        let destination = findDestination loadedVehicle.Cargo.Value
+        let destination = findDestination loadedVehicle.Cargo.Head
         let journey = (location, state.Time, destination, state.Time + state.Distances location destination)
         let movingVehicle = { loadedVehicle with Location = Journey journey }
 
@@ -58,7 +63,7 @@ let despatch vehicleType location findDestination state =
 let unload vehicleType location state =
     match state with
     | LoadedVehicleAt vehicleType location (loadedVehicle, cargo, otherVehicles) ->
-        let unloadedVehicle = { loadedVehicle with Cargo = None }
+        let unloadedVehicle = { loadedVehicle with Cargo = [] }
         Some { state with Queues = state.Queues.Add(location, cargo :: state.Queues.[location]); Vehicles = unloadedVehicle :: otherVehicles }
     | _ -> None
 
@@ -89,7 +94,7 @@ let timePasses state =
     { state with Time = tNext }
 
 let isCompleted state =
-    state.Queues.[Factory].IsEmpty && state.Queues.[Port].IsEmpty && List.forall (fun v -> v.Cargo.IsNone) state.Vehicles
+    state.Queues.[Factory].IsEmpty && state.Queues.[Port].IsEmpty && List.forall (fun v -> v.Cargo.IsEmpty) state.Vehicles
 
 let run rules originalState =
     let rec runRec state =
