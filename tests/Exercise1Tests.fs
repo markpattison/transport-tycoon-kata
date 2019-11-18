@@ -8,6 +8,7 @@ open TransportTycoon
 let dummyLog = fun _ -> ()
 
 [<TestCase("A", 5)>]
+[<TestCase("B", 5)>]
 [<TestCase("AB", 5)>]
 [<TestCase("BB", 5)>]
 [<TestCase("ABB", 7)>]
