@@ -13,9 +13,14 @@ let (|EmptyVehicleAt|_|) vehicleType location state =
     | Some (emptyVehicle, otherVehicles) -> Some (emptyVehicle, otherVehicles)
     | _ -> None
 
+let (|VehicleNotFullAt|_|) vehicleType location state =
+    match splitFirstMatch (fun v -> v.Type = vehicleType && v.Location = At location && v.Cargo.Length < v.Capacity) state.Vehicles with
+    | Some (notFullVehicle, otherVehicles) -> Some (notFullVehicle, otherVehicles)
+    | _ -> None
+
 let (|LoadedVehicleAt|_|) vehicleType location state =
     match splitFirstMatch (fun v -> v.Type = vehicleType && v.Location = At location && not v.Cargo.IsEmpty) state.Vehicles with
-    | Some (loadedVehicle, otherVehicles) -> Some (loadedVehicle, loadedVehicle.Cargo.Head, otherVehicles)
+    | Some (loadedVehicle, otherVehicles) -> Some (loadedVehicle, otherVehicles)
     | _ -> None
 
 let (|CargoAt|_|) location state =
@@ -43,14 +48,14 @@ let logArrive state vehicle location =
 
 let loadCargo vehicleType location state =
     match state with
-    | EmptyVehicleAt vehicleType location (emptyVehicle, otherVehicles) & CargoAt location (cargoToLoad, remainingCargo) ->
-        let loadedVehicle = { emptyVehicle with Cargo = [ cargoToLoad ] }
+    | VehicleNotFullAt vehicleType location (notFullVehicle, otherVehicles) & CargoAt location (cargoToLoad, remainingCargo) ->
+        let loadedVehicle = { notFullVehicle with Cargo = cargoToLoad :: notFullVehicle.Cargo }
         Some { state with Queues = state.Queues.Add(location, remainingCargo); Vehicles = loadedVehicle :: otherVehicles }
     | _ -> None
 
 let despatch vehicleType location findDestination state =
     match state with
-    | LoadedVehicleAt vehicleType location (loadedVehicle, _, otherVehicles) ->
+    | LoadedVehicleAt vehicleType location (loadedVehicle, otherVehicles) ->
         let destination = findDestination loadedVehicle.Cargo.Head
         let journey = (location, state.Time, destination, state.Time + state.Distances location destination)
         let movingVehicle = { loadedVehicle with Location = Journey journey }
@@ -62,9 +67,9 @@ let despatch vehicleType location findDestination state =
 
 let unload vehicleType location state =
     match state with
-    | LoadedVehicleAt vehicleType location (loadedVehicle, cargo, otherVehicles) ->
-        let unloadedVehicle = { loadedVehicle with Cargo = [] }
-        Some { state with Queues = state.Queues.Add(location, cargo :: state.Queues.[location]); Vehicles = unloadedVehicle :: otherVehicles }
+    | LoadedVehicleAt vehicleType location (loadedVehicle, otherVehicles) ->
+        let unloadedVehicle = { loadedVehicle with Cargo = loadedVehicle.Cargo.Tail }
+        Some { state with Queues = state.Queues.Add(location, loadedVehicle.Cargo.Head :: state.Queues.[location]); Vehicles = unloadedVehicle :: otherVehicles }
     | _ -> None
 
 let returnEmpty vehicleType location destination state =
