@@ -20,6 +20,7 @@ let initialState log cargo =
       Queues = [ (Factory, cargo); (Port, []); (Warehouse A, []); (Warehouse B, []) ] |> Map.ofList
       Vehicles = initialVehicles
       Distances = distances
+      LoadTimes = fun _ -> 0
       Log = log }
 
 let scenarioRules =

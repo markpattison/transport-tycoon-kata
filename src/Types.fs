@@ -44,6 +44,7 @@ type State =
         Time: int
         Queues: Map<Place, Cargo list>
         Vehicles: Vehicle list
+        LoadTimes: VehicleType -> int
         Distances: Place -> Place -> int
         Log: string -> unit
     }
