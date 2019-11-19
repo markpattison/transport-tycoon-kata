@@ -38,6 +38,7 @@ type Vehicle =
         Capacity: int
         Location: Location
         Cargo: Cargo list
+        Loading: (Cargo * int) list // finish time
     }
 
 type State =
