@@ -40,6 +40,7 @@ type Vehicle =
         Cargo: Cargo list
         Loading: (Cargo * int) list // finish time
     }
+    member this.TotalCargo = this.Cargo.Length + this.Loading.Length
 
 type State =
     {

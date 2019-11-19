@@ -11,17 +11,17 @@ let splitFirstMatch predicate lst =
     split [] lst
 
 let (|EmptyVehicleAt|_|) vehicleType location state =
-    match splitFirstMatch (fun v -> v.Type = vehicleType && v.Location = At location && v.Cargo.IsEmpty) state.Vehicles with
+    match splitFirstMatch (fun v -> v.Type = vehicleType && v.Location = At location && v.TotalCargo = 0) state.Vehicles with
     | Some (emptyVehicle, otherVehicles) -> Some (emptyVehicle, otherVehicles)
     | _ -> None
 
 let (|VehicleNotFullAt|_|) vehicleType location state =
-    match splitFirstMatch (fun v -> v.Type = vehicleType && v.Location = At location && v.Cargo.Length < v.Capacity) state.Vehicles with
+    match splitFirstMatch (fun v -> v.Type = vehicleType && v.Location = At location && v.TotalCargo < v.Capacity) state.Vehicles with
     | Some (notFullVehicle, otherVehicles) -> Some (notFullVehicle, otherVehicles)
     | _ -> None
 
 let (|LoadedVehicleAt|_|) vehicleType location state =
-    match splitFirstMatch (fun v -> v.Type = vehicleType && v.Location = At location && not v.Cargo.IsEmpty) state.Vehicles with
+    match splitFirstMatch (fun v -> v.Type = vehicleType && v.Location = At location && v.Cargo.Length > 0 && v.Loading.Length = 0) state.Vehicles with
     | Some (loadedVehicle, otherVehicles) -> Some (loadedVehicle, otherVehicles)
     | _ -> None
 
@@ -29,6 +29,8 @@ let (|CargoAt|_|) location state =
     match state.Queues.[location] with
     | cargoToLoad :: remainingCargo -> Some (cargoToLoad, remainingCargo)
     | [] -> None
+
+// logging
 
 let singleCargoLogString (cargo: Cargo) =
     sprintf """{"cargo_id": %i, "destination": %O, "origin": "%O"}""" cargo.Id cargo.Destination cargo.Origin
@@ -47,6 +49,8 @@ let logDepart state vehicle location destination =
 let logArrive state vehicle location =
     sprintf """{"event": "ARRIVE", "time": %i, "transport_id": %i, "kind": "%O", "location": "%O"%s}""" state.Time vehicle.Id vehicle.Type location (cargoLogString vehicle.Cargo)
     |> state.Log
+
+// updates
 
 let loadCargo vehicleType location state =
     match state with
