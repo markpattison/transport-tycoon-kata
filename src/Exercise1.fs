@@ -10,9 +10,9 @@ let distances location1 location2 =
     | _ -> failwith "Impossible journey"
 
 let initialVehicles =
-    [ { Id = 0; Type = Truck; Capacity = 1; Location = At Factory; Cargo = []; Loading = [] }
-      { Id = 1; Type = Truck; Capacity = 1; Location = At Factory; Cargo = []; Loading = [] }
-      { Id = 2; Type = Ship; Capacity = 1; Location = At Port; Cargo = []; Loading = [] }
+    [ { Id = 0; Type = Truck; Capacity = 1; Location = At Factory; Cargo = []; Loading = []; Unloading = [] }
+      { Id = 1; Type = Truck; Capacity = 1; Location = At Factory; Cargo = []; Loading = []; Unloading = [] }
+      { Id = 2; Type = Ship; Capacity = 1; Location = At Port; Cargo = []; Loading = []; Unloading = [] }
     ]
 
 let initialState log cargo =
@@ -21,6 +21,7 @@ let initialState log cargo =
       Vehicles = initialVehicles
       Distances = distances
       LoadTimes = fun _ -> 0
+      UnloadTimes = fun _ -> 0
       Log = log }
 
 let scenarioRules =

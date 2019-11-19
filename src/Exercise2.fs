@@ -9,15 +9,15 @@ let distances location1 location2 =
     | Factory, Warehouse B | Warehouse B, Factory -> 5
     | _ -> failwith "Impossible journey"
 
-let loadTimes vehicleType =
+let loadUnloadTimes vehicleType =
     match vehicleType with
     | Truck -> 0
     | Ship -> 1
 
 let initialVehicles =
-    [ { Id = 0; Type = Truck; Capacity = 1; Location = At Factory; Cargo = []; Loading = [] }
-      { Id = 1; Type = Truck; Capacity = 1; Location = At Factory; Cargo = []; Loading = [] }
-      { Id = 2; Type = Ship; Capacity = 4; Location = At Port; Cargo = []; Loading = [] }
+    [ { Id = 0; Type = Truck; Capacity = 1; Location = At Factory; Cargo = []; Loading = []; Unloading = [] }
+      { Id = 1; Type = Truck; Capacity = 1; Location = At Factory; Cargo = []; Loading = []; Unloading = [] }
+      { Id = 2; Type = Ship; Capacity = 4; Location = At Port; Cargo = []; Loading = []; Unloading = [] }
     ]
 
 let initialState log cargo =
@@ -25,7 +25,8 @@ let initialState log cargo =
       Queues = [ (Factory, cargo); (Port, []); (Warehouse A, []); (Warehouse B, []) ] |> Map.ofList
       Vehicles = initialVehicles
       Distances = distances
-      LoadTimes = loadTimes
+      LoadTimes = loadUnloadTimes
+      UnloadTimes = loadUnloadTimes
       Log = log }
 
 let containsCargoFor dest cargoList = List.exists (fun cargo -> cargo.Destination = dest) cargoList

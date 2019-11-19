@@ -39,8 +39,9 @@ type Vehicle =
         Location: Location
         Cargo: Cargo list
         Loading: (Cargo * int) list // finish time
+        Unloading: (Cargo * int) list // finish time
     }
-    member this.TotalCargo = this.Cargo.Length + this.Loading.Length
+    member this.TotalCargo = this.Cargo.Length + this.Loading.Length + this.Unloading.Length
 
 type State =
     {
@@ -48,6 +49,7 @@ type State =
         Queues: Map<Place, Cargo list>
         Vehicles: Vehicle list
         LoadTimes: VehicleType -> int
+        UnloadTimes: VehicleType -> int
         Distances: Place -> Place -> int
         Log: string -> unit
     }
