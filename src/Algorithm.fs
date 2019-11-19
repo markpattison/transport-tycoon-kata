@@ -40,7 +40,7 @@ let (|CargoAt|_|) location state =
 // logging
 
 let singleCargoLogString (cargo: Cargo) =
-    sprintf """{"cargo_id": %i, "destination": %O, "origin": "%O"}""" cargo.Id cargo.Destination cargo.Origin
+    sprintf """{"cargo_id": %i, "destination": "%O", "origin": "%O"}""" cargo.Id cargo.Destination cargo.Origin
 
 let cargoLogString cargo =
     match cargo with
@@ -50,7 +50,7 @@ let cargoLogString cargo =
         sprintf """, "cargo": [%s]""" inner
 
 let logDepart state vehicle location destination =
-    sprintf """{"event": "DEPART", "time": %i, "transport_id": %i, "kind": "%O", "location": "%O", "destination": %O%s}""" state.Time vehicle.Id vehicle.Type location destination (cargoLogString vehicle.Cargo)
+    sprintf """{"event": "DEPART", "time": %i, "transport_id": %i, "kind": "%O", "location": "%O", "destination": "%O"%s}""" state.Time vehicle.Id vehicle.Type location destination (cargoLogString vehicle.Cargo)
     |> state.Log
 
 let logArrive state vehicle location =
@@ -58,11 +58,11 @@ let logArrive state vehicle location =
     |> state.Log
 
 let logLoad state vehicle location cargo =
-    sprintf """{"event": "LOAD", "time": %i, "transport_id": %i, "kind": %O", "location": "%O", "cargo": %s}""" state.Time vehicle.Id vehicle.Type location (singleCargoLogString cargo)
+    sprintf """{"event": "LOAD", "time": %i, "transport_id": %i, "kind": "%O", "location": "%O", "cargo": %s}""" state.Time vehicle.Id vehicle.Type location (singleCargoLogString cargo)
     |> state.Log
 
 let logUnload state vehicle location cargo =
-    sprintf """{"event": "UNLOAD", "time": %i, "transport_id": %i, "kind": %O", "location": "%O", "cargo": %s}""" state.Time vehicle.Id vehicle.Type location (singleCargoLogString cargo)
+    sprintf """{"event": "UNLOAD", "time": %i, "transport_id": %i, "kind": "%O", "location": "%O", "cargo": %s}""" state.Time vehicle.Id vehicle.Type location (singleCargoLogString cargo)
     |> state.Log
 
 // updates
